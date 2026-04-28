@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
+import { useGoogleLogin } from '@react-oauth/google'
 
 export default function LoginPage({ onSuccess }) {
   const { login, loginWithGoogle } = useAuth()
@@ -27,16 +28,28 @@ export default function LoginPage({ onSuccess }) {
     }, 600)
   }
 
-  const handleGoogleLogin = () => {
-    setLoading(true)
-    showToast('กำลังเชื่อมต่อกับ Google...')
-    setTimeout(() => {
-      loginWithGoogle()
-      showToast('เข้าสู่ระบบด้วย Google สำเร็จ!')
-      onSuccess()
-      setLoading(false)
-    }, 1200)
-  }
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setLoading(true)
+      try {
+        // Fetch user info from Google API using the access token
+        const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+        })
+        const data = await res.json()
+        
+        // ส่งข้อมูลเข้า AuthContext
+        loginWithGoogle(data)
+        showToast('เข้าสู่ระบบด้วย Google สำเร็จ!')
+        onSuccess()
+      } catch (err) {
+        showToast('เกิดข้อผิดพลาดในการดึงข้อมูล Google')
+      } finally {
+        setLoading(false)
+      }
+    },
+    onError: () => showToast('การเข้าสู่ระบบด้วย Google ล้มเหลว'),
+  })
 
   const handleAction = (label) => {
     showToast(`ฟีเจอร์ ${label} ยังไม่เปิดให้บริการ`)

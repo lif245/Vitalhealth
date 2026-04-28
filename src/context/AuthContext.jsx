@@ -19,14 +19,15 @@ export function AuthProvider({ children }) {
     return false
   }
 
-  const loginWithGoogle = () => {
-    // Simulate a successful Google login with a mock user
-    setUser({ 
-      username: 'google_user', 
-      email: 'user@gmail.com', 
-      name: 'Google User',
-      avatar: 'https://lh3.googleusercontent.com/a/default-user=s96-c' 
-    })
+  const loginWithGoogle = (userData) => {
+    if (userData) {
+      setUser({ 
+        username: userData.name || 'google_user', 
+        email: userData.email, 
+        name: userData.name,
+        avatar: userData.picture 
+      })
+    }
     return true
   }
 
