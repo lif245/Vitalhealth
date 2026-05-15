@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useToast } from '../context/ToastContext'
 import { useHealthStore } from '../store/useHealthStore'
 import PageTransition from '../components/PageTransition'
@@ -15,6 +15,47 @@ export default function FoodPage() {
   const [foodName, setFoodName] = useState('')
   const [foodCal, setFoodCal] = useState('')
   const [loading, setLoading] = useState(false)
+  const [analyzing, setAnalyzing] = useState(false)
+  const fileInputRef = useRef(null)
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    setAnalyzing(true)
+    showToast('กำลังให้ AI วิเคราะห์รูปภาพ...', 'info')
+
+    try {
+      const reader = new FileReader()
+      reader.onloadend = async () => {
+        const base64Data = reader.result
+        
+        const response = await fetch('/api/analyze-food', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            base64Image: base64Data,
+            mimeType: file.type
+          })
+        })
+
+        if (!response.ok) throw new Error('API Error')
+        
+        const data = await response.json()
+        setFoodName(data.name || '')
+        setFoodCal(data.kcal ? data.kcal.toString() : '')
+        showToast('วิเคราะห์สำเร็จ! ตรวจสอบข้อมูลก่อนบันทึก', 'success')
+      }
+      reader.readAsDataURL(file)
+    } catch (error) {
+      console.error(error)
+      showToast('ไม่สามารถวิเคราะห์ภาพได้ ลองใหม่อีกครั้ง', 'error')
+    } finally {
+      setAnalyzing(false)
+      // Reset input
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
 
   const handleAdd = () => {
     if (!foodName || !foodCal) {
@@ -61,13 +102,35 @@ export default function FoodPage() {
           <div className="space-y-4">
             <div>
               <label className="block text-[0.88rem] font-medium text-app-text2 mb-1.5 font-sarabun">ชื่ออาหาร</label>
-              <input 
-                type="text" 
-                value={foodName}
-                onChange={e => setFoodName(e.target.value)}
-                placeholder="เช่น ข้าวมันไก่" 
-                className="w-full px-3.5 py-2.5 border-[1.5px] border-app-border rounded-app-sm bg-app-bg text-app-text font-sarabun text-[0.95rem] outline-none focus:border-green-mid focus:bg-white transition-all"
-              />
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={foodName}
+                  onChange={e => setFoodName(e.target.value)}
+                  placeholder="เช่น ข้าวมันไก่" 
+                  className="flex-1 px-3.5 py-2.5 border-[1.5px] border-app-border rounded-app-sm bg-app-bg text-app-text font-sarabun text-[0.95rem] outline-none focus:border-green-mid focus:bg-white transition-all"
+                />
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  capture="environment" 
+                  ref={fileInputRef}
+                  onChange={handleImageUpload}
+                  className="hidden" 
+                />
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={analyzing}
+                  title="ถ่ายรูปด้วย AI"
+                  className="w-11 h-[44px] flex items-center justify-center bg-green-pale text-green-deep rounded-app-sm border-[1.5px] border-green-mid/30 hover:bg-green-mid/20 transition-all disabled:opacity-50 shrink-0"
+                >
+                  {analyzing ? (
+                    <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                  )}
+                </button>
+              </div>
             </div>
             <div>
               <label className="block text-[0.88rem] font-medium text-app-text2 mb-1.5 font-sarabun">แคลอรี (kcal)</label>

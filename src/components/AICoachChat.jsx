@@ -12,7 +12,7 @@ export default function AICoachChat() {
   
   const healthData = useHealthStore()
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return
 
     const userMessage = { role: 'user', content: input }
@@ -20,29 +20,39 @@ export default function AICoachChat() {
     setInput('')
     setIsTyping(true)
 
-    // Mock API response based on context
-    setTimeout(() => {
-      let reply = 'ฟีเจอร์นี้อยู่ระหว่างการเชื่อมต่อ API จริงครับ 😊'
-      
-      if (userMessage.content.includes('แคลอรี') || userMessage.content.includes('กิน')) {
-        reply = `วันนี้คุณเผาผลาญไปแล้ว ${healthData.caloriesBurned} kcal และรับประทานไป ${healthData.caloriesIntake} kcal ครับ ถือว่าทำได้ดีเลย! แนะนำให้ทานโปรตีนเพิ่มในมื้อเย็นนะครับ`
-      } else if (userMessage.content.includes('เดิน') || userMessage.content.includes('ก้าว')) {
-        reply = `ยอดเยี่ยมมาก! วันนี้คุณเดินไปแล้ว ${healthData.steps} ก้าว พยายามเดินให้ถึง 10,000 ก้าวเพื่อสุขภาพที่แข็งแรงนะครับ`
-      } else if (userMessage.content.includes('นอน')) {
-        reply = `คุณนอนไป ${healthData.sleepHours} ชั่วโมงเมื่อคืน ถ้ามีอาการอ่อนเพลีย คืนนี้ลองเข้านอนไวขึ้นสัก 30 นาทีดูนะครับ`
-      }
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMessage.content,
+          healthData: {
+            caloriesBurned: healthData.caloriesBurned,
+            caloriesIntake: healthData.caloriesIntake,
+            steps: healthData.steps,
+            sleepHours: healthData.sleepHours
+          }
+        })
+      })
 
-      setMessages(prev => [...prev, { role: 'assistant', content: reply }])
+      if (!response.ok) throw new Error('API Error')
+      
+      const data = await response.json()
+      setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
+    } catch (error) {
+      console.error(error)
+      setMessages(prev => [...prev, { role: 'assistant', content: 'ขออภัยครับ ระบบ AI ขัดข้องชั่วคราว 😅' }])
+    } finally {
       setIsTyping(false)
-    }, 1500)
+    }
   }
 
   return (
     <>
-      {/* Floating Button */}
+      {/* Floating Button - positioned above bottom nav on mobile */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-green-deep text-white rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform z-40"
+        className="fixed bottom-[72px] lg:bottom-6 right-4 lg:right-6 w-12 h-12 lg:w-14 lg:h-14 bg-green-deep text-white rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform z-40 active:scale-95"
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
       </button>
@@ -54,7 +64,7 @@ export default function AICoachChat() {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-24 right-6 w-[350px] max-w-[calc(100vw-48px)] h-[500px] max-h-[70vh] bg-white rounded-2xl shadow-2xl flex flex-col z-50 border border-gray-100 overflow-hidden"
+            className="fixed bottom-0 right-0 left-0 lg:left-auto lg:bottom-24 lg:right-6 w-full lg:w-[360px] h-[85vh] lg:h-[500px] lg:max-h-[70vh] bg-white lg:rounded-2xl shadow-2xl flex flex-col z-50 border-0 lg:border border-gray-100 overflow-hidden"
           >
             {/* Header */}
             <div className="bg-green-deep p-4 text-white flex justify-between items-center">

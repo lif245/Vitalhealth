@@ -32,7 +32,7 @@ export default function App() {
   return (
     <div className={`flex flex-col min-h-screen ${isDarkMode ? 'dark' : ''} bg-app-bg text-app-text transition-colors duration-300`}>
       <Header />
-      <main className="flex-1 max-w-[1100px] mx-auto w-full px-7">
+      <main className="flex-1 max-w-[1100px] mx-auto w-full px-4 md:px-7 pb-20 lg:pb-0">
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/exercise" element={<ExercisePage />} />

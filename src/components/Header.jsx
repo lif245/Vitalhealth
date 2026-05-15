@@ -92,18 +92,27 @@ export default function Header() {
 
     {/* Mobile Bottom Navigation */}
     {user && (
-      <div className="lg:hidden fixed bottom-0 left-0 w-full bg-app-bg/90 backdrop-blur-md border-t border-app-border z-50 pb-safe">
-        <nav className="flex justify-around items-center h-16">
+      <div className="lg:hidden fixed bottom-0 left-0 w-full bg-app-bg/95 backdrop-blur-xl border-t border-app-border z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <nav className="flex justify-around items-center h-[60px]">
           {navItems.map(item => (
             <NavLink
               key={item.id}
               to={item.id === 'home' ? '/' : `/${item.id}`}
-              className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${
-                isActive ? 'text-green-deep' : 'text-app-text3 hover:text-green-mid'
+              className={({ isActive }) => `flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all relative ${
+                isActive ? 'text-green-deep' : 'text-app-text3'
               }`}
             >
-              {item.icon}
-              <span className="text-[10px] font-sarabun font-medium">{item.label}</span>
+              {({ isActive }) => (
+                <>
+                  {isActive && (
+                    <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-[3px] bg-green-deep rounded-b-full" />
+                  )}
+                  <span className={`transition-transform duration-200 ${isActive ? 'scale-110' : ''}`}>
+                    {item.icon}
+                  </span>
+                  <span className={`text-[10px] font-sarabun font-medium leading-none ${isActive ? 'font-bold' : ''}`}>{item.label}</span>
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
