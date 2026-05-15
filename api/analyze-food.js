@@ -1,29 +1,33 @@
 import Anthropic from '@anthropic-ai/sdk';
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    console.error('Missing ANTHROPIC_API_KEY');
+    return res.status(500).json({ error: 'Server configuration error: Missing API Key' });
+  }
+
+  const anthropic = new Anthropic({ apiKey });
   const { base64Image, mimeType } = req.body;
 
   if (!base64Image) {
     return res.status(400).json({ error: 'Image is required' });
   }
 
-  // Remove the data:image/...;base64, prefix if it exists
-  const cleanBase64 = base64Image.replace(/^data:image\/\w+;base64,/, '');
+  // Improved base64 cleaning: remove everything before the comma
+  const cleanBase64 = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
 
   try {
+    console.log('Sending request to Claude Vision API...');
     const msg = await anthropic.messages.create({
       model: "claude-3-5-sonnet-20241022",
-      max_tokens: 300,
-      temperature: 0.2,
-      system: "You are an expert nutritionist. Analyze the provided image of food. Respond strictly with a JSON object containing two keys: 'name' (string, the name of the food in Thai) and 'kcal' (number, the estimated calories). Do not include any other text or markdown formatting. Example: {\"name\": \"ข้าวมันไก่\", \"kcal\": 600}",
+      max_tokens: 400,
+      temperature: 0,
+      system: "You are an expert nutritionist. Analyze the provided image of food. Respond strictly with a JSON object containing two keys: 'name' (string, the name of the food in Thai) and 'kcal' (number, the estimated calories). Example: {\"name\": \"ข้าวมันไก่\", \"kcal\": 600}",
       messages: [
         {
           role: "user",
@@ -32,13 +36,13 @@ export default async function handler(req, res) {
               type: "image",
               source: {
                 type: "base64",
-                media_type: mimeType || "image/jpeg",
+                media_type: mimeType && mimeType.startsWith('image/') ? mimeType : "image/jpeg",
                 data: cleanBase64,
               },
             },
             {
               type: "text",
-              text: "วิเคราะห์ภาพอาหารนี้และบอกชื่ออาหารภาษาไทยและแคลอรีโดยประมาณ (ตอบเป็น JSON เท่านั้น)"
+              text: "Identify this food and its estimated calories. Thai language please."
             }
           ],
         }
@@ -46,18 +50,18 @@ export default async function handler(req, res) {
     });
 
     const textContent = msg.content[0].text.trim();
+    console.log('Claude response:', textContent);
     
-    // In case Claude wraps the JSON in markdown code blocks
     const jsonMatch = textContent.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-       throw new Error('Could not find JSON in response');
-    }
+       throw new Error('Invalid AI response format');
+     }
     
     const result = JSON.parse(jsonMatch[0]);
-
     return res.status(200).json(result);
+
   } catch (error) {
     console.error('Claude API error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message || 'Internal Server Error' });
   }
 }

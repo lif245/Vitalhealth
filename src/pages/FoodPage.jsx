@@ -22,37 +22,50 @@ export default function FoodPage() {
     const file = e.target.files[0]
     if (!file) return
 
+    // Check file size (limit 5MB for Claude API)
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('ไฟล์ภาพใหญ่เกินไป (จำกัด 5MB)', 'error')
+      return
+    }
+
     setAnalyzing(true)
-    showToast('กำลังให้ AI วิเคราะห์รูปภาพ...', 'info')
+    showToast('กำลังวิเคราะห์รูปภาพ...', 'info')
 
     try {
-      const reader = new FileReader()
-      reader.onloadend = async () => {
-        const base64Data = reader.result
-        
-        const response = await fetch('/api/analyze-food', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            base64Image: base64Data,
-            mimeType: file.type
-          })
-        })
+      const base64Data = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result)
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
 
-        if (!response.ok) throw new Error('API Error')
-        
-        const data = await response.json()
-        setFoodName(data.name || '')
-        setFoodCal(data.kcal ? data.kcal.toString() : '')
-        showToast('วิเคราะห์สำเร็จ! ตรวจสอบข้อมูลก่อนบันทึก', 'success')
+      const response = await fetch('/api/analyze-food', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          base64Image: base64Data,
+          mimeType: file.type
+        })
+      })
+
+      if (!response.ok) {
+        const errData = await response.json()
+        throw new Error(errData.error || 'API Error')
       }
-      reader.readAsDataURL(file)
+      
+      const data = await response.json()
+      if (data.name && data.kcal) {
+        setFoodName(data.name)
+        setFoodCal(data.kcal.toString())
+        showToast('วิเคราะห์สำเร็จ!', 'success')
+      } else {
+        throw new Error('ข้อมูลไม่ครบถ้วน')
+      }
     } catch (error) {
-      console.error(error)
-      showToast('ไม่สามารถวิเคราะห์ภาพได้ ลองใหม่อีกครั้ง', 'error')
+      console.error('Analysis error:', error)
+      showToast(`ผิดพลาด: ${error.message}`, 'error')
     } finally {
       setAnalyzing(false)
-      // Reset input
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
