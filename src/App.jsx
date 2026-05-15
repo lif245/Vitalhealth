@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import { useHealthStore } from './store/useHealthStore'
@@ -15,10 +16,15 @@ import Footer from './components/Footer'
 
 export default function App() {
   const { user } = useAuth()
-  const { isDarkMode } = useHealthStore()
+  const { isDarkMode, checkDailyReset } = useHealthStore()
   
   // Initialize smart reminders globally
   useSmartReminders()
+
+  // Auto-reset daily stats when app opens on a new day
+  useEffect(() => {
+    checkDailyReset()
+  }, [])
 
   // If not logged in → show login page
   if (!user) {

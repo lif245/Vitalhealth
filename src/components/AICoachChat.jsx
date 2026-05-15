@@ -1,16 +1,22 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useHealthStore } from '../store/useHealthStore'
 
 export default function AICoachChat() {
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'สวัสดีครับ! ผมคือ AI Health Coach ของคุณ มีอะไรให้ผมช่วยแนะนำเกี่ยวกับสุขภาพ วันนี้ไหมครับ?' }
+    { role: 'assistant', content: 'สวัสดีครับ! ผมคือ AI Health Coach ของคุณ มีอะไรให้ผมช่วยแนะนำเกี่ยวกับสุขภาพวันนี้ไหมครับ?' }
   ])
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
+  const messagesEndRef = useRef(null)
   
   const healthData = useHealthStore()
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, isTyping])
 
   const handleSend = async () => {
     if (!input.trim()) return
@@ -102,6 +108,7 @@ export default function AICoachChat() {
                   </div>
                 </div>
               )}
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Input */}

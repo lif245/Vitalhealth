@@ -1,14 +1,17 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+const todayStr = () => new Date().toISOString().slice(0, 10) // "YYYY-MM-DD"
+
 export const useHealthStore = create(
   persist(
-    (set) => ({
+    (set, get) => ({
       steps: 0,
       caloriesBurned: 0,
       caloriesIntake: 0,
       sleepHours: 0,
       logs: [], // { id, type, value, label, date }
+      lastResetDate: todayStr(),
       isDarkMode: false,
       notificationSettings: {
         exercise: { active: false, time: '06:00' },
@@ -16,6 +19,14 @@ export const useHealthStore = create(
         sleep: { active: false, time: '22:00' },
         water: { active: false, interval: '2' },
         emailAlert: { active: false }
+      },
+
+      // Check and auto-reset daily stats if it's a new day
+      checkDailyReset: () => {
+        const today = todayStr()
+        if (get().lastResetDate !== today) {
+          set({ steps: 0, caloriesBurned: 0, caloriesIntake: 0, sleepHours: 0, lastResetDate: today })
+        }
       },
 
       toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
@@ -28,6 +39,11 @@ export const useHealthStore = create(
       })),
 
       addLog: (entry) => set((state) => {
+        const today = todayStr()
+        // Auto-reset if new day
+        const isNewDay = state.lastResetDate !== today
+        const resetStats = isNewDay ? { steps: 0, caloriesBurned: 0, caloriesIntake: 0, sleepHours: 0, lastResetDate: today } : {}
+
         const newEntry = {
           ...entry,
           id: Date.now(),
@@ -35,17 +51,18 @@ export const useHealthStore = create(
         }
         
         const updatedLogs = [newEntry, ...state.logs]
+        let updates = { ...resetStats, logs: updatedLogs }
         
-        let updates = { logs: updatedLogs }
-        
+        const base = isNewDay ? 0 : state.caloriesBurned
+
         if (entry.type === 'exercise') {
-          updates.caloriesBurned = state.caloriesBurned + entry.value
+          updates.caloriesBurned = (isNewDay ? 0 : state.caloriesBurned) + entry.value
         } else if (entry.type === 'food') {
-          updates.caloriesIntake = state.caloriesIntake + entry.value
+          updates.caloriesIntake = (isNewDay ? 0 : state.caloriesIntake) + entry.value
         } else if (entry.type === 'sleep') {
-          updates.sleepHours = entry.value // Overwrite with latest sleep or add? Usually overwrite for daily.
+          updates.sleepHours = entry.value // Latest sleep entry for the day
         } else if (entry.type === 'steps') {
-          updates.steps = state.steps + entry.value
+          updates.steps = (isNewDay ? 0 : state.steps) + entry.value
         }
 
         return updates
@@ -56,11 +73,12 @@ export const useHealthStore = create(
         caloriesBurned: 0,
         caloriesIntake: 0,
         sleepHours: 0,
-        logs: []
+        logs: [],
+        lastResetDate: todayStr()
       })
     }),
     {
-      name: 'vitalhealth_storage', // name of the item in the storage (must be unique)
+      name: 'vitalhealth_storage',
     }
   )
 )
