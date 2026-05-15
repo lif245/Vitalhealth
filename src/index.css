@@ -3,15 +3,44 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --color-bg-main: #f0faf6;
+    --color-bg-card: #ffffff;
+    --color-bg-card2: #f8fdfa;
+    --color-text-main: #0f2d22;
+    --color-text-muted: #4b6a5e;
+    --color-text-light: #6a8c7e;
+    --color-border: #d2efe3;
+    
+    --color-green-deep: #0d6e4f;
+    --color-green-mid: #16a97a;
+    --color-green-pale: #b8e8d6;
+  }
+
+  .dark {
+    --color-bg-main: #0f172a;
+    --color-bg-card: #1e293b;
+    --color-bg-card2: #0f172a;
+    --color-text-main: #f8fafc;
+    --color-text-muted: #cbd5e1;
+    --color-text-light: #94a3b8;
+    --color-border: #334155;
+    
+    --color-green-deep: #34d399; /* lighter green for dark mode */
+    --color-green-mid: #10b981;
+    --color-green-pale: #064e3b;
+  }
+
   * {
     box-sizing: border-box;
   }
   body {
     font-family: 'Sarabun', sans-serif;
-    background-color: #f0faf6;
-    color: #0f2d22;
+    background-color: var(--color-bg-main);
+    color: var(--color-text-main);
     min-height: 100vh;
     overflow-x: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
   h1, h2, h3, h4 {
     font-family: 'Prompt', sans-serif;

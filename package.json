@@ -14,9 +14,13 @@
   "dependencies": {
     "@react-oauth/google": "^0.13.5",
     "@vercel/postgres": "^0.10.0",
+    "framer-motion": "^12.38.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-router-dom": "^7.9.3"
+    "react-hook-form": "^7.75.0",
+    "react-router-dom": "^7.9.3",
+    "recharts": "^3.8.1",
+    "zustand": "^5.0.13"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",

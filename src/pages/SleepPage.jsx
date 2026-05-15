@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useToast } from '../context/ToastContext'
+import { useHealthStore } from '../store/useHealthStore'
+import PageTransition from '../components/PageTransition'
 
 const tips = [
   { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>, title: 'ปรับอุณหภูมิห้อง', desc: 'ห้องที่เย็นประมาณ 18-22°C ช่วยให้นอนหลับได้ดีขึ้น' },
@@ -10,6 +12,7 @@ const tips = [
 
 export default function SleepPage() {
   const { showToast } = useToast()
+  const { logs, addLog } = useHealthStore()
   const [sleepStart, setSleepStart] = useState('22:30')
   const [sleepEnd, setSleepEnd] = useState('06:00')
   const [hours, setHours] = useState('7.5')
@@ -28,6 +31,11 @@ export default function SleepPage() {
   const handleSave = () => {
     setLoading(true)
     setTimeout(() => {
+      addLog({
+        type: 'sleep',
+        value: parseFloat(hours),
+        label: `นอน ${hours} ชม. (คุณภาพ ${stars}/5)`
+      })
       showToast('บันทึกการนอนสำเร็จ!')
       setLoading(false)
     }, 800)
@@ -39,13 +47,16 @@ export default function SleepPage() {
 
   const starLabels = ['', 'แย่', 'พอใช้', 'ปานกลาง', 'ดี', 'ยอดเยี่ยม']
 
+  const recentSleep = logs.filter(log => log.type === 'sleep').slice(0, 3)
+
   return (
+    <PageTransition>
     <div className="py-9">
       <div className="mb-7">
         <h2 className="text-[1.6rem] font-bold font-prompt text-app-text">บันทึกการนอนหลับ</h2>
         <p className="text-app-text3 text-[0.95rem] mt-1 font-sarabun">ติดตามคุณภาพการนอนเพื่อพลังงานที่ดีขึ้น</p>
       </div>
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-app p-7 shadow-app border-[1.5px] border-app-border">
           <h3 className="text-[1.05rem] font-semibold mb-5 flex items-center gap-2 font-prompt text-green-deep">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
@@ -112,6 +123,25 @@ export default function SleepPage() {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
             คำแนะนำการนอน
           </h3>
+          
+          <div className="mb-6">
+            <div className="text-[0.85rem] text-app-text3 mb-2.5 font-sarabun">บันทึกล่าสุด</div>
+            {recentSleep.length > 0 ? (
+              <div className="space-y-2">
+                {recentSleep.map(sl => (
+                  <div key={sl.id} className="flex justify-between items-center p-3 bg-app-bg2 rounded-app-sm border border-app-border">
+                    <span className="text-[0.9rem] font-medium text-app-text font-sarabun">{sl.label}</span>
+                    <span className="text-[0.8rem] text-app-text3 font-sarabun">{new Date(sl.date).toLocaleDateString([], { day: '2-digit', month: 'short' })}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4 text-[0.85rem] text-app-text3 bg-app-bg2 rounded-app-sm border border-dashed border-app-border">
+                ยังไม่มีข้อมูลการนอน
+              </div>
+            )}
+          </div>
+
           <ul className="list-none p-0 m-0">
             {tips.map((t, i) => (
               <li key={i} className={`flex items-start gap-3.5 py-4 text-[0.9rem] font-sarabun ${i < tips.length - 1 ? 'border-b border-app-bg2' : ''}`}>
@@ -126,5 +156,6 @@ export default function SleepPage() {
         </div>
       </div>
     </div>
+    </PageTransition>
   )
 }

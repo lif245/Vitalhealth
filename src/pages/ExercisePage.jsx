@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import { useToast } from '../context/ToastContext'
+import { useHealthStore } from '../store/useHealthStore'
+import PageTransition from '../components/PageTransition'
 
 const calMap = { run: 9, swim: 7, cycle: 6, yoga: 3, gym: 5, walk: 3.5 }
 
 export default function ExercisePage() {
   const { showToast } = useToast()
+  const { logs, addLog, caloriesBurned } = useHealthStore()
   const [exType, setExType] = useState('')
   const [exStart, setExStart] = useState('06:30')
   const [exEnd, setExEnd] = useState('07:15')
@@ -21,8 +24,17 @@ export default function ExercisePage() {
   }
 
   const handleSave = () => {
+    if (!exType) {
+      showToast('กรุณาเลือกประเภทการออกกำลังกาย')
+      return
+    }
     setLoading(true)
     setTimeout(() => {
+      addLog({
+        type: 'exercise',
+        value: calories,
+        label: `${exType.toUpperCase()} (${calories} kcal)`
+      })
       showToast('บันทึกการออกกำลังกายสำเร็จ!')
       setLoading(false)
     }, 800)
@@ -38,13 +50,16 @@ export default function ExercisePage() {
     { day: 'อา', h: 55, color: 'linear-gradient(180deg,#22d6a0,#16a97a)', opacity: 0.5 },
   ]
 
+  const recentExercises = logs.filter(log => log.type === 'exercise').slice(0, 3)
+
   return (
+    <PageTransition>
     <div className="py-9">
       <div className="mb-7">
         <h2 className="text-[1.6rem] font-bold font-prompt text-app-text">บันทึกการออกกำลังกาย</h2>
         <p className="text-app-text3 text-[0.95rem] mt-1 font-sarabun">ติดตามกิจกรรมและแคลอรีที่เผาผลาญแต่ละวัน</p>
       </div>
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left card */}
         <div className="bg-white rounded-app p-7 shadow-app border-[1.5px] border-app-border">
           <h3 className="text-[1.05rem] font-semibold mb-5 flex items-center gap-2 font-prompt text-green-deep">
@@ -98,28 +113,41 @@ export default function ExercisePage() {
         <div className="bg-white rounded-app p-7 shadow-app border-[1.5px] border-app-border">
           <h3 className="text-[1.05rem] font-semibold mb-5 flex items-center gap-2 font-prompt text-green-deep">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
-            สถิติ 7 วันที่ผ่านมา
+            ประวัติและสถิติ
           </h3>
-          <div className="flex items-end gap-2.5 h-[140px] px-1">
+          
+          {/* History List */}
+          <div className="mb-6">
+            <div className="text-[0.85rem] text-app-text3 mb-2.5 font-sarabun">กิจกรรมล่าสุด</div>
+            {recentExercises.length > 0 ? (
+              <div className="space-y-2">
+                {recentExercises.map(ex => (
+                  <div key={ex.id} className="flex justify-between items-center p-3 bg-app-bg2 rounded-app-sm border border-app-border">
+                    <span className="text-[0.9rem] font-medium text-app-text font-sarabun">{ex.label}</span>
+                    <span className="text-[0.8rem] text-app-text3 font-sarabun">{new Date(ex.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4 text-[0.85rem] text-app-text3 bg-app-bg2 rounded-app-sm border border-dashed border-app-border">
+                ยังไม่มีข้อมูลการออกกำลังกาย
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-end gap-2.5 h-[100px] px-1 mb-4">
             {bars.map((b, i) => (
-              <div key={i} className="bar-item">
+              <div key={i} className="bar-item flex-1">
                 <div className="bar transition-all duration-500" style={{ height: `${b.h}%`, background: b.color, opacity: b.opacity || 1 }} />
                 <span className="text-[0.72rem] text-app-text3 font-sarabun">{b.day}</span>
               </div>
             ))}
           </div>
-          <div className="flex gap-4 mt-4 justify-center">
-            {[{ color: '#16a97a', label: 'แคลอรี' }, { color: '#0891b2', label: 'ว่ายน้ำ' }, { color: '#ff6b6b', label: 'น้อย' }].map(l => (
-              <div key={l.label} className="flex items-center gap-1.5 text-[0.8rem] text-app-text3 font-sarabun">
-                <div className="w-2.5 h-2.5 rounded-full" style={{ background: l.color }} />
-                {l.label}
-              </div>
-            ))}
-          </div>
-          <div className="mt-5 p-3 bg-app-bg2 rounded-app-sm">
+          
+          <div className="p-3 bg-app-bg2 rounded-app-sm">
             <div className="text-[0.85rem] text-app-text3 mb-2 font-sarabun">สรุปสัปดาห์นี้</div>
             <div className="flex gap-5 font-prompt">
-              {[{ v: '5', u: 'วัน' }, { v: '2,840', u: 'kcal' }, { v: '4.5', u: 'ชม.' }].map((s, i) => (
+              {[{ v: '5', u: 'วัน' }, { v: caloriesBurned.toLocaleString(), u: 'kcal' }, { v: '4.5', u: 'ชม.' }].map((s, i) => (
                 <div key={i}>
                   <span className="text-[1.2rem] font-bold text-green-deep">{s.v}</span>{' '}
                   <span className="text-[0.8rem] text-app-text3 font-sarabun">{s.u}</span>
@@ -130,5 +158,6 @@ export default function ExercisePage() {
         </div>
       </div>
     </div>
+    </PageTransition>
   )
 }

@@ -1,17 +1,28 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState(() => {
+    // โหลดข้อมูลผู้ใช้จาก localStorage ถ้ามี
+    const savedUser = localStorage.getItem('vitalhealth_user')
+    return savedUser ? JSON.parse(savedUser) : null
+  })
+
+  // บันทึกข้อมูลลง localStorage เมื่อมีการเปลี่ยนสถานะ
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('vitalhealth_user', JSON.stringify(user))
+    } else {
+      localStorage.removeItem('vitalhealth_user')
+    }
+  }, [user])
 
   const login = (usernameOrEmail, password) => {
-    // Check if it's the default test user or if it looks like an email and has password '1234'
     if (
       (usernameOrEmail === 'user' && password === '1234') ||
       (usernameOrEmail.includes('@') && password === '1234')
     ) {
-      // Extract username from email if needed
       const displayName = usernameOrEmail.includes('@') ? usernameOrEmail.split('@')[0] : usernameOrEmail
       setUser({ username: displayName, email: usernameOrEmail, name: 'คุณผู้ใช้' })
       return true
