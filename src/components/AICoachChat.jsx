@@ -41,13 +41,20 @@ export default function AICoachChat() {
         })
       })
 
-      if (!response.ok) throw new Error('API Error')
-      
       const data = await response.json()
+
+      if (!response.ok) {
+        // Show real server error in chat for easier debugging
+        throw new Error(data.error || `Server error ${response.status}`)
+      }
+      
       setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
     } catch (error) {
-      console.error(error)
-      setMessages(prev => [...prev, { role: 'assistant', content: 'ขออภัยครับ ระบบ AI ขัดข้องชั่วคราว 😅' }])
+      console.error('Chat error:', error.message)
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: `⚠️ ผิดพลาด: ${error.message}` 
+      }])
     } finally {
       setIsTyping(false)
     }
