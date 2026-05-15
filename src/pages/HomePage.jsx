@@ -119,7 +119,7 @@ export default function HomePage() {
             <div className="text-green-mid flex justify-center mb-1.5 md:mb-2 transition-transform group-hover:scale-110">{q.icon}</div>
             <div className="text-[0.72rem] md:text-[0.82rem] font-medium text-app-text2 leading-tight">{q.label}</div>
           </button>
-        ))}}
+        ))}
       </div>
 
       <Modal 
