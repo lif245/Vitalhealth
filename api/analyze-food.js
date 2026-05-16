@@ -11,8 +11,8 @@ export default async function handler(req, res) {
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  // Using -latest for maximum compatibility
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+  // Using gemini-pro-vision as a backup for image analysis
+  const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
 
   const { base64Image, mimeType } = req.body;
 

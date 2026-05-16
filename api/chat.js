@@ -10,9 +10,9 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Server configuration error: Missing GEMINI_API_KEY' });
   }
 
-  // Use the standard stable model name
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+  // Using the most basic and standard model name 'gemini-pro'
+  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
   const { message, healthData } = req.body;
 
@@ -24,10 +24,7 @@ export default async function handler(req, res) {
     - ก้าวเดิน: ${healthData?.steps || 0} ก้าว
     - นอน: ${healthData?.sleepHours || 0} ชม.
     
-    คำแนะนำ:
-    1. ตอบเป็นภาษาไทย
-    2. เป็นกันเอง ให้กำลังใจ และใช้ emoji
-    3. ตอบสั้นๆ (2-3 ประโยค) เหมาะกับหน้าต่างแชทขนาดเล็ก`;
+    คำแนะนำ: ตอบเป็นภาษาไทย สั้นๆ เป็นกันเอง`;
 
     const result = await model.generateContent([
       { text: systemPrompt },
