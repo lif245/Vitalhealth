@@ -10,9 +10,9 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Server configuration error: Missing GEMINI_API_KEY' });
   }
 
+  // Use the standard stable model name
   const genAI = new GoogleGenerativeAI(apiKey);
-  // Switched to 1.5-flash for better free tier stability
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
   const { message, healthData } = req.body;
 
