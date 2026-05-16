@@ -69,7 +69,7 @@ export default function HomePage() {
         <div className="bg-app-bg2 rounded-2xl p-4 md:p-6 shadow-app border-[1.5px] border-app-border">
           <h3 className="text-[0.95rem] md:text-[1.05rem] font-semibold mb-3 font-prompt text-green-deep">แคลอรีที่เผาผลาญรายสัปดาห์</h3>
           <div className="h-[160px] md:h-[200px] w-full relative">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
               <BarChart data={[
                 { name: 'จ', cal: 1200 }, { name: 'อ', cal: 1800 }, { name: 'พ', cal: 1500 },
                 { name: 'พฤ', cal: 2100 }, { name: 'ศ', cal: 1900 }, { name: 'ส', cal: 2400 }, { name: 'อา', cal: 2000 }
@@ -86,7 +86,7 @@ export default function HomePage() {
         <div className="bg-app-bg2 rounded-2xl p-4 md:p-6 shadow-app border-[1.5px] border-app-border">
           <h3 className="text-[0.95rem] md:text-[1.05rem] font-semibold mb-3 font-prompt text-green-deep">แนวโน้มน้ำหนัก</h3>
           <div className="h-[160px] md:h-[200px] w-full relative">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
               <LineChart data={[
                 { name: 'สัปดาห์ 1', weight: 65.5 }, { name: 'สัปดาห์ 2', weight: 65.0 }, 
                 { name: 'สัปดาห์ 3', weight: 64.2 }, { name: 'สัปดาห์ 4', weight: 63.8 }
