@@ -11,7 +11,8 @@ export default async function handler(req, res) {
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  // Switched to 1.5-flash for better free tier stability
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   const { base64Image, mimeType } = req.body;
 
@@ -19,7 +20,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Image is required' });
   }
 
-  // Remove data:image/...;base64, prefix
   const cleanBase64 = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
 
   try {
