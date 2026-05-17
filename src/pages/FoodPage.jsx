@@ -16,19 +16,20 @@ export default function FoodPage() {
   const [foodCal, setFoodCal] = useState('')
   const [loading, setLoading] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
+  const [imagePreview, setImagePreview] = useState(null)
+  const [macros, setMacros] = useState(null)
   const fileInputRef = useRef(null)
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0]
+  const processFile = async (file) => {
     if (!file) return
 
-    // Check file size (limit 5MB for Claude API)
     if (file.size > 5 * 1024 * 1024) {
       showToast('ไฟล์ภาพใหญ่เกินไป (จำกัด 5MB)', 'error')
       return
     }
 
     setAnalyzing(true)
+    setMacros(null)
     showToast('กำลังวิเคราะห์รูปภาพ...', 'info')
 
     try {
@@ -38,6 +39,7 @@ export default function FoodPage() {
         reader.onerror = reject
         reader.readAsDataURL(file)
       })
+      setImagePreview(base64Data)
 
       const response = await fetch('/api/analyze-food', {
         method: 'POST',
@@ -57,6 +59,13 @@ export default function FoodPage() {
       if (data.name && data.kcal) {
         setFoodName(data.name)
         setFoodCal(data.kcal.toString())
+        if (data.protein !== undefined) {
+          setMacros({
+            protein: data.protein,
+            carbs: data.carbs,
+            fat: data.fat
+          })
+        }
         showToast('วิเคราะห์สำเร็จ!', 'success')
       } else {
         throw new Error('ข้อมูลไม่ครบถ้วน')
@@ -64,9 +73,27 @@ export default function FoodPage() {
     } catch (error) {
       console.error('Analysis error:', error)
       showToast(`ผิดพลาด: ${error.message}`, 'error')
+      setImagePreview(null)
     } finally {
       setAnalyzing(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleImageUpload = (e) => {
+    processFile(e.target.files[0])
+  }
+
+  const onDragOver = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const onDrop = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processFile(e.dataTransfer.files[0])
     }
   }
 
@@ -83,15 +110,23 @@ export default function FoodPage() {
         label: `${foodName} (${foodCal} kcal)`
       })
       showToast(`บันทึก ${foodName} เรียบร้อย!`)
-      setFoodName('')
-      setFoodCal('')
+      resetState()
       setLoading(false)
     }, 600)
+  }
+
+  const resetState = () => {
+    setFoodName('')
+    setFoodCal('')
+    setImagePreview(null)
+    setMacros(null)
   }
 
   const selectRecipe = (r) => {
     setFoodName(r.name)
     setFoodCal(r.cal.toString())
+    setImagePreview(r.img)
+    setMacros(null)
     showToast(`เลือก ${r.name} แล้ว`)
   }
 
@@ -102,72 +137,141 @@ export default function FoodPage() {
     <div className="py-9">
       <div className="mb-7">
         <h2 className="text-[1.6rem] font-bold font-prompt text-app-text">บันทึกอาหาร</h2>
-        <p className="text-app-text3 text-[0.95rem] mt-1 font-sarabun">ติดตามปริมาณพลังงานที่คุณได้รับในแต่ละมื้อ</p>
+        <p className="text-app-text3 text-[0.95rem] mt-1 font-sarabun">ติดตามปริมาณพลังงานและสารอาหารของคุณ</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Input Card */}
-        <div className="lg:col-span-1 bg-white rounded-app p-7 shadow-app border-[1.5px] border-app-border h-fit">
-          <h3 className="text-[1.05rem] font-semibold mb-5 flex items-center gap-2 font-prompt text-green-deep">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            เพิ่มเมนูใหม่
-          </h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-[0.88rem] font-medium text-app-text2 mb-1.5 font-sarabun">ชื่ออาหาร</label>
-              <div className="flex gap-2">
+        <div className="lg:col-span-1 flex flex-col gap-5">
+          {/* AI Scanner Area */}
+          <div className="bg-white rounded-app p-6 shadow-app border-[1.5px] border-app-border h-fit">
+            <h3 className="text-[1.05rem] font-semibold mb-4 flex items-center gap-2 font-prompt text-green-deep">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+              แสกนอาหารด้วย AI
+            </h3>
+            
+            <input 
+              type="file" 
+              accept="image/*" 
+              capture="environment" 
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+              className="hidden" 
+            />
+
+            {!imagePreview ? (
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={onDragOver}
+                onDrop={onDrop}
+                className="w-full h-48 border-2 border-dashed border-app-border rounded-xl flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-green-mid hover:bg-green-pale/30 transition-all text-app-text3 group"
+              >
+                <div className="w-12 h-12 rounded-full bg-app-bg2 flex items-center justify-center group-hover:bg-green-pale group-hover:text-green-deep transition-all">
+                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <div className="text-center">
+                  <p className="font-sarabun font-medium text-app-text2">แตะเพื่อถ่ายรูป หรืออัปโหลด</p>
+                  <p className="font-sarabun text-[0.8rem] mt-1">รองรับ JPG, PNG (สูงสุด 5MB)</p>
+                </div>
+              </div>
+            ) : (
+              <div className="relative w-full h-48 rounded-xl overflow-hidden border-[1.5px] border-app-border bg-black">
+                <img src={imagePreview} alt="Food preview" className="w-full h-full object-cover opacity-90" />
+                
+                {analyzing && (
+                  <>
+                    <div className="absolute inset-0 bg-green-deep/20 backdrop-blur-[1px]"></div>
+                    {/* Laser scan animation */}
+                    <div className="absolute left-0 right-0 h-[2px] bg-green-mid shadow-[0_0_10px_#16a97a] animate-[scan_2s_ease-in-out_infinite]"></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="bg-white/90 px-4 py-2 rounded-full font-sarabun text-[0.85rem] font-medium text-green-deep shadow-lg flex items-center gap-2">
+                        <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        กำลังวิเคราะห์...
+                      </div>
+                    </div>
+                  </>
+                )}
+                
+                {!analyzing && (
+                  <button 
+                    onClick={resetState}
+                    className="absolute top-2 right-2 w-8 h-8 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-all backdrop-blur-sm"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                  </button>
+                )}
+              </div>
+            )}
+            
+            <style>{`
+              @keyframes scan {
+                0% { top: 0; opacity: 0; }
+                10% { opacity: 1; }
+                90% { opacity: 1; }
+                100% { top: 100%; opacity: 0; }
+              }
+            `}</style>
+          </div>
+
+          {/* Result Card */}
+          <div className="bg-white rounded-app p-6 shadow-app border-[1.5px] border-app-border">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[0.88rem] font-medium text-app-text2 mb-1.5 font-sarabun">ชื่ออาหาร</label>
                 <input 
                   type="text" 
                   value={foodName}
                   onChange={e => setFoodName(e.target.value)}
                   placeholder="เช่น ข้าวมันไก่" 
-                  className="flex-1 px-3.5 py-2.5 border-[1.5px] border-app-border rounded-app-sm bg-app-bg text-app-text font-sarabun text-[0.95rem] outline-none focus:border-green-mid focus:bg-white transition-all"
+                  className="w-full px-3.5 py-2.5 border-[1.5px] border-app-border rounded-app-sm bg-app-bg text-app-text font-sarabun text-[0.95rem] outline-none focus:border-green-mid focus:bg-white transition-all"
                 />
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  capture="environment" 
-                  ref={fileInputRef}
-                  onChange={handleImageUpload}
-                  className="hidden" 
-                />
-                <button 
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={analyzing}
-                  title="ถ่ายรูปด้วย AI"
-                  className="w-11 h-[44px] flex items-center justify-center bg-green-pale text-green-deep rounded-app-sm border-[1.5px] border-green-mid/30 hover:bg-green-mid/20 transition-all disabled:opacity-50 shrink-0"
-                >
-                  {analyzing ? (
-                    <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                  ) : (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
-                  )}
-                </button>
               </div>
-            </div>
-            <div>
-              <label className="block text-[0.88rem] font-medium text-app-text2 mb-1.5 font-sarabun">แคลอรี (kcal)</label>
-              <input 
-                type="number" 
-                value={foodCal}
-                onChange={e => setFoodCal(e.target.value)}
-                placeholder="0" 
-                className="w-full px-3.5 py-2.5 border-[1.5px] border-app-border rounded-app-sm bg-app-bg text-app-text font-sarabun text-[0.95rem] outline-none focus:border-green-mid focus:bg-white transition-all"
-              />
-            </div>
-            <button 
-              onClick={handleAdd}
-              disabled={loading}
-              className="w-full py-3 rounded-app-sm font-prompt font-semibold text-white text-[1rem] transition-all hover:opacity-90 hover:-translate-y-px shadow-md disabled:opacity-70 mt-2"
-              style={{ background: 'linear-gradient(135deg, #16a97a, #0891b2)' }}
-            >
-              {loading ? 'กำลังเพิ่ม...' : 'เพิ่มลงในบันทึก'}
-            </button>
-          </div>
+              
+              <div>
+                <label className="block text-[0.88rem] font-medium text-app-text2 mb-1.5 font-sarabun">แคลอรี (kcal)</label>
+                <input 
+                  type="number" 
+                  value={foodCal}
+                  onChange={e => setFoodCal(e.target.value)}
+                  placeholder="0" 
+                  className="w-full px-3.5 py-2.5 border-[1.5px] border-app-border rounded-app-sm bg-app-bg text-app-text font-sarabun text-[0.95rem] outline-none focus:border-green-mid focus:bg-white transition-all font-semibold"
+                />
+              </div>
 
+              {macros && (
+                <div className="pt-2">
+                  <label className="block text-[0.88rem] font-medium text-app-text2 mb-2 font-sarabun">ข้อมูลโภชนาการ (โดยประมาณ)</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-[#f8f0f0] border border-[#f5dbdb] rounded-lg p-2.5 text-center">
+                      <div className="text-[0.7rem] text-[#d65f5f] font-semibold mb-1">โปรตีน</div>
+                      <div className="font-prompt font-bold text-app-text">{macros.protein}g</div>
+                    </div>
+                    <div className="bg-[#f0f4f8] border border-[#dbe6f5] rounded-lg p-2.5 text-center">
+                      <div className="text-[0.7rem] text-[#5b87c7] font-semibold mb-1">คาร์บ</div>
+                      <div className="font-prompt font-bold text-app-text">{macros.carbs}g</div>
+                    </div>
+                    <div className="bg-[#fffdf0] border border-[#f5f1db] rounded-lg p-2.5 text-center">
+                      <div className="text-[0.7rem] text-[#d4b944] font-semibold mb-1">ไขมัน</div>
+                      <div className="font-prompt font-bold text-app-text">{macros.fat}g</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <button 
+                onClick={handleAdd}
+                disabled={loading || analyzing}
+                className="w-full py-3 rounded-app-sm font-prompt font-semibold text-white text-[1rem] transition-all hover:opacity-90 hover:-translate-y-px shadow-md disabled:opacity-70 mt-2 flex items-center justify-center gap-2"
+                style={{ background: 'linear-gradient(135deg, #16a97a, #0891b2)' }}
+              >
+                {loading ? 'กำลังบันทึก...' : 'บันทึกอาหาร'}
+              </button>
+            </div>
+          </div>
+          
           {/* Recent Food */}
-          <div className="mt-8 pt-6 border-t border-app-bg2">
-            <div className="text-[0.85rem] text-app-text3 mb-3 font-sarabun">มื้อล่าสุด</div>
+          <div className="bg-white rounded-app p-6 shadow-app border-[1.5px] border-app-border">
+            <h3 className="text-[1.05rem] font-semibold mb-4 font-prompt text-app-text">มื้อล่าสุด</h3>
             {recentFood.length > 0 ? (
               <div className="space-y-2">
                 {recentFood.map(f => (
