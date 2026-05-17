@@ -75,7 +75,12 @@ export default function FoodPage() {
       }
       
       const data = await response.json()
-      if (data.name && data.kcal) {
+      
+      if (data.error === 'not_food') {
+        throw new Error('ไม่พบอาหารในรูปภาพ ลองถ่ายใหม่อีกครั้งครับ')
+      }
+
+      if (data.name && data.kcal !== undefined) {
         setFoodName(data.name)
         setFoodCal(data.kcal.toString())
         if (data.protein !== undefined) {

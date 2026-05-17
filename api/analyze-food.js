@@ -21,7 +21,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         contents: [{
           parts: [
-            { text: "Identify the food in this image and estimate its calories and macronutrients. Respond strictly with a JSON object containing keys: 'name' (Thai string), 'kcal' (number), 'protein' (number in grams), 'carbs' (number in grams), 'fat' (number in grams). Example: {\"name\": \"ข้าวมันไก่\", \"kcal\": 600, \"protein\": 20, \"carbs\": 60, \"fat\": 15}" },
+            { text: "Identify the food in this image and estimate its calories and macronutrients. If the image does not contain food, return: {\"error\": \"not_food\"}. Otherwise, respond strictly with a JSON object containing keys: 'name' (Thai string), 'kcal' (number), 'protein' (number in grams), 'carbs' (number in grams), 'fat' (number in grams). Example: {\"name\": \"ข้าวมันไก่\", \"kcal\": 600, \"protein\": 20, \"carbs\": 60, \"fat\": 15}" },
             {
               inline_data: {
                 mime_type: mimeType || "image/jpeg",
