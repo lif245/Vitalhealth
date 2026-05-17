@@ -20,25 +20,44 @@ export default function FoodPage() {
   const [macros, setMacros] = useState(null)
   const fileInputRef = useRef(null)
 
+  const compressImage = (file, maxWidth = 800, quality = 0.7) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = (event) => {
+        const img = new Image()
+        img.src = event.target.result
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          let width = img.width
+          let height = img.height
+
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width)
+            width = maxWidth
+          }
+
+          canvas.width = width
+          canvas.height = height
+          const ctx = canvas.getContext('2d')
+          ctx.drawImage(img, 0, 0, width, height)
+          resolve(canvas.toDataURL('image/jpeg', quality))
+        }
+        img.onerror = reject
+      }
+      reader.onerror = reject
+    })
+  }
+
   const processFile = async (file) => {
     if (!file) return
 
-    if (file.size > 5 * 1024 * 1024) {
-      showToast('ไฟล์ภาพใหญ่เกินไป (จำกัด 5MB)', 'error')
-      return
-    }
-
     setAnalyzing(true)
     setMacros(null)
-    showToast('กำลังวิเคราะห์รูปภาพ...', 'info')
+    showToast('กำลังบีบอัดและวิเคราะห์รูปภาพ...', 'info')
 
     try {
-      const base64Data = await new Promise((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => resolve(reader.result)
-        reader.onerror = reject
-        reader.readAsDataURL(file)
-      })
+      const base64Data = await compressImage(file)
       setImagePreview(base64Data)
 
       const response = await fetch('/api/analyze-food', {
@@ -171,7 +190,7 @@ export default function FoodPage() {
                 </div>
                 <div className="text-center">
                   <p className="font-sarabun font-medium text-app-text2">แตะเพื่อถ่ายรูป หรืออัปโหลด</p>
-                  <p className="font-sarabun text-[0.8rem] mt-1">รองรับ JPG, PNG (สูงสุด 5MB)</p>
+                  <p className="font-sarabun text-[0.8rem] mt-1">รองรับรูปภาพและถ่ายภาพโดยตรง</p>
                 </div>
               </div>
             ) : (
